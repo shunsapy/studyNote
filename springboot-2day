@@ -14,5 +14,5 @@ public class MyWebMvcConfig implements WebMvcConfigurer {
 	}
 }
 
-配置完成后，可实现前后端分离、微服务等跨域请求
+配置完成后，可实现前后端分离、微服务等跨域请求。
 
