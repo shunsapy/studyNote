@@ -64,3 +64,82 @@ public class MyWebMvcConfig implements WebMvcConfigurer {
 		...
 	}
 }
+
+
+3.springboot整合servlet、filter、listener
+实际上使用了srping、springmvc之后，基本上不用配置servlet、filter、listener，但是在使用第三方插件或者组件时，
+可能需要配置servlet，比如一些报表插件等等，使用@WebServlet、@WebFilter、@WebListener。
+
+@WebServlet("/my")
+public class MyServlet extends HttpServlet {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		doPost(req, resp);
+	}
+	
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		System.out.println("my doPost!!!");
+	}
+	
+}
+
+@WebFilter("/*")
+public class MyFilter implements Filter {
+
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException {
+		// TODO Auto-generated method stub
+		System.out.println("myFilter doFilter");
+		chain.doFilter(request, response);
+	}
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		// TODO Auto-generated method stub
+		System.out.println("myFilter init");
+	}
+	
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		System.out.println("myFilter---destroy");
+	}
+}
+
+@WebListener
+public class MyListener implements ServletRequestListener {
+
+	
+	@Override
+	public void requestInitialized(ServletRequestEvent sre) {
+		// TODO Auto-generated method stub
+		System.out.println("MyListener --- requestInitialized");
+	}
+	
+	@Override
+	public void requestDestroyed(ServletRequestEvent sre) {
+		// TODO Auto-generated method stub
+		System.out.println("MyListener --- requestDestroyed");
+	}
+}
+
+最后，在springboot启动类上增加@ServletComponentScan，将扫描@WebServlet、@WebFilter、@WebListener注解的类
+@SpringBootApplication
+@ServletComponentScan
+public class Springboot1Application {
+
+	public static void main(String[] args) {
+		SpringApplication.run(Springboot1Application.class, args);
+	}
+
+}
+
