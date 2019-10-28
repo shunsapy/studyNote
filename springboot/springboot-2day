@@ -155,3 +155,78 @@ public class MyWebMvcConfig implements WebMvcConfigurer {
 		registry.addViewController("/index").setViewName("index");
 	}
 }
+
+
+5.springboot之面向切面编程（AOP）
+假如有这么个场景，在现有的已经投入生产的应用当中增加一个统计各模块在用户那边使用的频率情况，该如何做？
+是写一个通用的统计方法，然后在各个模块的业务调用处一一调用这个方法来统计模块用户使用量？
+这样的话，需要大动代码，且此统计功能要在后续下线的话，又得再改回来，实在是很麻烦，还很容易给生产环境引入bug。
+如果能在执行方法前后动态的添加其他执行代码，那么这个统计功能就很容易实现，后期也很容易将其下线。
+AOP就是这么个解决方案，面向切面编程。
+AOP的几个关键名词：
+Joinpoint：连接点，即需要被AOP增强的方法；
+PointCut：切入点，顾名思义，对JoinPoint进行拦截，拦截切入的规则点，比如service包下的所有service当中的所有方法、所有以xxx开头的方法等等；
+Advice：通知，拦截到JointPoint之后要做的事，比如上文提到的统计业务的使用频率即调用此方法的次数；
+Aspect：切面，PointCut和Advice的结合；
+Target：目标对象，要增强的类。
+
+SpringBoot实现AOP：
+a.首先引入AOP的自动配置依赖包
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+
+b.编写切面
+@Component
+//声明切面
+@Aspect
+public class LogAspect {
+	//切入点
+	@Pointcut("execution(* com.gxl.zyf.*.service.impl.*.*(..))")
+	public void pc() {
+		
+	}
+	//前置通知，即方法调用钱首先执行
+	@Before(value = "pc()")
+	public void before(JoinPoint jp) {
+		String name = jp.getSignature().getName();
+		System.out.println(name + "方法开始执行");
+	}
+	//后置通知，即方法调用结束后执行
+	@After(value="pc()")
+	public void after(JoinPoint jp) {
+		String name = jp.getSignature().getName();
+		System.out.println(name + "方法执行结束");
+	}
+	//后置返回值通知，即方法结束后可以获取方法的返回值
+	//此方法返回Object，说明返回一切类型，即所有又返回值的方法都会执行此通知
+	//如果返回值的类型被定义为某一个类型，那只有拥有某类型返回值的方法会被拦截通知
+	@AfterReturning(value="pc()",returning = "result")
+	public void afterreturning(JoinPoint jp,Object result) {
+		String name = jp.getSignature().getName();
+		System.out.println(name + "方法返回值为：" +result);
+		
+	}
+	//异常通知，即此方法出异常后调用此通知方法
+	@AfterThrowing(value = "pc()",throwing = "e")
+	public void afterThrowing(JoinPoint jp,Exception e) {
+		String name = jp.getSignature().getName();
+		System.out.println(name + "方法抛异常了，异常为：" + e.getMessage());
+		
+	}
+	//环绕通知，此通知为最强大的通知，可以实现前置、后置、返回通知、异常通知、参数拦截、返回值更改、
+	//甚至终止方法执行等等操作
+	//此通知一般需要线程安全的环境下执行
+	//所以，一般能用前置、后置等通知，就尽量少用环绕通知
+	@Around(value = "pc()")
+	public Object around(ProceedingJoinPoint pjp) throws Throwable {
+		//这段在切入点拦截到接入点JoinPoint的时候最先执行
+		System.out.println(Arrays.toString(pjp.getArgs()));
+		System.out.println(pjp.getTarget());
+		System.out.println(pjp.getSignature());
+		//end
+		//此方法使接入点继续执行
+		return pjp.proceed();
+	}
+}
