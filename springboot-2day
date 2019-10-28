@@ -143,3 +143,15 @@ public class Springboot1Application {
 
 }
 
+4.配置路径映射
+如果只是单纯的跳转页面，不需要处理数据，则可以集中统一在配置类中配置需要映射的路径和页面关系，这样便于管理
+@Configuration
+public class MyWebMvcConfig implements WebMvcConfigurer {
+
+	
+	@Override
+	public void addViewControllers(ViewControllerRegistry registry) {
+		// TODO Auto-generated method stub
+		registry.addViewController("/index").setViewName("index");
+	}
+}
