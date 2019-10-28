@@ -1,1 +1,45 @@
 
+1.controller的方法不能返回Model
+//不能返回，报异常，待解
+	@RequestMapping("/getModel")
+	public Map<String,Object> getModel(Model model) {
+		Map<String,Object> modelMap =  model.asMap();
+		return modelMap;
+	}
+  
+2.当controller的方法中存在多个对象，多个对象中有相同属性名的属性时，如果没有配置initBinder,则多个对象共用一个属性
+就算配了initBinder，如果请求路径中的参数没有加initBinder配置的属性前缀，还是共用
+
+@RequestMapping("/getModel2")
+	public String getModel2(@ModelAttribute("a")Book book,@ModelAttribute("b")Author author) {
+		
+		
+		return book.toString()+"----"+author.toString();
+}
+
+advice：
+@InitBinder("a")
+public void init(WebDataBinder binder) {
+  binder.setFieldDefaultPrefix("a.");
+}
+	
+@InitBinder("b")
+public void init1(WebDataBinder binder) {
+
+  binder.setFieldDefaultPrefix("b.");
+}
+
+效果：
+a.http://localhost:8081/getModel2?name=asd
+asd---asd
+
+b.http://localhost:8081/getModel2?a.name=asd&b.name=qwe
+asd---qwe
+
+
+3.配置错误页面
+通过阅读basicErrorController类可以发现，boot预定义了error页面资源，如果项目中没有提供任何错误页面，则默认跳转boot自动生成的error页面，
+如果想提供自定义的error页面，则可以将错误页面资源放在classpath下的static文件夹下的error文件夹下或者动态错误页面放到tamplates下的error文件夹下，
+并取名4xx.html,5xx.html等等，或者更精确的404.html或者500.html等等，
+优先级为tamplates.error.404.html > tamplates.error.4xx.html > static.error.404.html > static.error.4xx.html,
+即动态模版优先于静态模版，然后，精确错误码页面优先于模糊错误码页面。
