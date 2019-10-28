@@ -1,0 +1,18 @@
+1.跨域cros
+springboot实现WebMvcConfigurer,并实现addCorsMappings方法，添加允许跨域的请求路径、请求头、请求方法、试探有效期时间、可跨的域名等等
+
+@Configuration
+public class MyWebMvcConfig implements WebMvcConfigurer {
+	@Override
+	public void addCorsMappings(CorsRegistry registry) {
+		// TODO Auto-generated method stub
+		registry.addMapping("/book/**")
+				.allowedHeaders("*")
+				.allowedMethods("*")
+				.maxAge(1800)
+				.allowedOrigins("http://localhost:8081");
+	}
+}
+
+配置完成后，可实现前后端分离、微服务等跨域请求
+
