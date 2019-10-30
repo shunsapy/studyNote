@@ -1,0 +1,127 @@
+SpringBoot很好的支持持久层框架的整合
+JdbcTemplate是spring提供的一套jdbc模版，用来消除大量的原生jdbc的模板代码，但在灵活度上没有mybatis高
+
+Springboot提供了JdbcTemplate的自动配置类JdbcTemplateAutoConfiguration，在没有配置JdbcTemplate的情况下，springboot提供默认的
+JdbcTemplate实现,JdbcTemplateAutoConfiguration源码：
+
+@Configuration
+@ConditionalOnClass({ DataSource.class, JdbcTemplate.class })
+@ConditionalOnSingleCandidate(DataSource.class)
+@AutoConfigureAfter(DataSourceAutoConfiguration.class)
+@EnableConfigurationProperties(JdbcProperties.class)
+public class JdbcTemplateAutoConfiguration {
+
+	@Configuration
+	static class JdbcTemplateConfiguration {
+
+		private final DataSource dataSource;
+
+		private final JdbcProperties properties;
+
+		JdbcTemplateConfiguration(DataSource dataSource, JdbcProperties properties) {
+			this.dataSource = dataSource;
+			this.properties = properties;
+		}
+
+		@Bean
+		@Primary
+		@ConditionalOnMissingBean(JdbcOperations.class)
+		public JdbcTemplate jdbcTemplate() {
+			JdbcTemplate jdbcTemplate = new JdbcTemplate(this.dataSource);
+			JdbcProperties.Template template = this.properties.getTemplate();
+			jdbcTemplate.setFetchSize(template.getFetchSize());
+			jdbcTemplate.setMaxRows(template.getMaxRows());
+			if (template.getQueryTimeout() != null) {
+				jdbcTemplate.setQueryTimeout((int) template.getQueryTimeout().getSeconds());
+			}
+			return jdbcTemplate;
+		}
+
+	}
+
+	@Configuration
+	@Import(JdbcTemplateConfiguration.class)
+	static class NamedParameterJdbcTemplateConfiguration {
+
+		@Bean
+		@Primary
+		@ConditionalOnSingleCandidate(JdbcTemplate.class)
+		@ConditionalOnMissingBean(NamedParameterJdbcOperations.class)
+		public NamedParameterJdbcTemplate namedParameterJdbcTemplate(JdbcTemplate jdbcTemplate) {
+			return new NamedParameterJdbcTemplate(jdbcTemplate);
+		}
+
+	}
+
+}
+
+从源码@ConditionalOnClass({ DataSource.class, JdbcTemplate.class })可以看出，只有同时存在JdbcTemplate和DataSource
+，并且从@ConditionalOnSingleCandidate(DataSource.class)可以看出，只存在一个DataSource的实例时，
+才会加载JdbcTemplateAutoConfiguration。
+所以，在Springboot中使用JdbcTemplate非常方便，只需要提供JdbcTemplate和DataSource的依赖即可：
+
+
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<dependency>
+  <groupId>mysql</groupId>
+  <artifactId>mysql-connector-java</artifactId> 
+  <scope>runtime</scope>
+</dependency>
+<dependency>
+  <groupId>com.alibaba</groupId>
+  <artifactId>druid</artifactId> 
+  <version>1.1.9</version>
+</dependency>
+
+然后在application.yml或者application.properties中配置：
+yaml文件中：
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://127.0.0.1:3306/vhr?useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: 12345678
+    
+properties文件中：
+spring.datasource.type = com.alibaba.druid.pool.DruidDataSource
+spring.datasource.url = jdbc:mysql://127.0.0.1:3306/vhr?useUnicode=true&characterEncoding=UTF-8
+spring.datasource.username = root
+spring.datasource.password = 12345678
+
+编写Dao层：
+
+@Repository
+public class UserDao {
+  //注入JdbcTemplate
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+	
+	public List<Hr> getAllHr(){
+		//执行查询操作
+		return jdbcTemplate.query("select * from vhr.hr", new BeanPropertyRowMapper(Hr.class));
+	}
+}
+
+编写service层：
+
+@Service
+public class UserServiceImpl implements IUserService {
+  //注入Dao
+	@Autowired
+	private UserDao userDao;
+	@Override
+	public String getMessage() {
+		
+		return "哈哈哈";
+	}
+	@Override
+	public List<Hr> getAllHr() {
+		// 调用Dao的方法
+		return userDao.getAllHr();
+	}
+}
+
+最后在controller层中点用service，实现JdbcTemplate操作数据库
